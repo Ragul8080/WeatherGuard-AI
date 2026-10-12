@@ -1,0 +1,141 @@
+services:
+  # -----------------------------------------------------------
+  # 1. PostgreSQL Database Service
+  # -----------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: weatherguard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: weatherguard
+      POSTGRES_PASSWORD: weatherguard_password
+      POSTGRES_DB: weatherguard
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U weatherguard -d weatherguard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - weatherguard-net
+
+  # -----------------------------------------------------------
+  # 2. FastAPI Backend Service
+  # -----------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weatherguard-api
+    restart: unless-stopped
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://weatherguard:weatherguard_password@postgres:5432/weatherguard
+      LOCATION_NAME: Chennai
+      LATITUDE: 13.0827
+      LONGITUDE: 80.2707
+      TIMEZONE: Asia/Kolkata
+      WEATHER_CHECK_INTERVAL_MINUTES: 60
+      ALERT_HORIZON_HOURS: 6
+      RAIN_PROBABILITY_THRESHOLD: 70
+      MIN_RAINFALL_MM: 1.0
+      HIGH_RAINFALL_MM: 10.0
+      LOW_TEMPERATURE_C: 15.0
+      HIGH_WIND_KMH: 40.0
+      OLLAMA_ENABLED: "true"
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: llama3.2
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      ALERT_RECIPIENT: ${ALERT_RECIPIENT:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - weatherguard-net
+
+  # -----------------------------------------------------------
+  # 3. Autonomous Hourly Scheduler (Single Instance)
+  # -----------------------------------------------------------
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weatherguard-scheduler
+    restart: unless-stopped
+    command: ["python", "-m", "app.scheduler.hourly"]
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://weatherguard:weatherguard_password@postgres:5432/weatherguard
+      LOCATION_NAME: Chennai
+      LATITUDE: 13.0827
+      LONGITUDE: 80.2707
+      TIMEZONE: Asia/Kolkata
+      WEATHER_CHECK_INTERVAL_MINUTES: 60
+      ALERT_HORIZON_HOURS: 6
+      RAIN_PROBABILITY_THRESHOLD: 70
+      MIN_RAINFALL_MM: 1.0
+      HIGH_RAINFALL_MM: 10.0
+      LOW_TEMPERATURE_C: 15.0
+      HIGH_WIND_KMH: 40.0
+      OLLAMA_ENABLED: "true"
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: llama3.2
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      ALERT_RECIPIENT: ${ALERT_RECIPIENT:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - weatherguard-net
+
+  # -----------------------------------------------------------
+  # 4. Streamlit Interactive Dashboard
+  # -----------------------------------------------------------
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weatherguard-dashboard
+    restart: unless-stopped
+    command: ["streamlit", "run", "dashboard/app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://weatherguard:weatherguard_password@postgres:5432/weatherguard
+      LOCATION_NAME: Chennai
+      LATITUDE: 13.0827
+      LONGITUDE: 80.2707
+      TIMEZONE: Asia/Kolkata
+      OLLAMA_ENABLED: "true"
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: llama3.2
+    ports:
+      - "8501:8501"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - weatherguard-net
+
+volumes:
+  postgres_data:
+
+networks:
+  weatherguard-net:
+    driver: bridge
