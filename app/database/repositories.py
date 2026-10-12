@@ -174,16 +174,16 @@ class UserPreferenceRepository:
 
         if not pref:
             pref = UserPreference(
-                email="",
-                location="Chennai",
-                latitude=13.0827,
-                longitude=80.2707,
-                timezone="Asia/Kolkata",
-                rain_probability_threshold=70.0,
-                minimum_rainfall_mm=1.0,
-                high_rainfall_mm=10.0,
-                low_temperature_threshold=15.0,
-                high_wind_threshold=40.0,
+                email=settings.ALERT_RECIPIENT or "",
+                location=location or settings.LOCATION_NAME,
+                latitude=settings.LATITUDE,
+                longitude=settings.LONGITUDE,
+                timezone=settings.TIMEZONE,
+                rain_probability_threshold=settings.RAIN_PROBABILITY_THRESHOLD,
+                minimum_rainfall_mm=settings.MIN_RAINFALL_MM,
+                high_rainfall_mm=settings.HIGH_RAINFALL_MM,
+                low_temperature_threshold=settings.LOW_TEMPERATURE_C,
+                high_wind_threshold=settings.HIGH_WIND_KMH,
                 alert_enabled=True,
             )
             self.db.add(pref)

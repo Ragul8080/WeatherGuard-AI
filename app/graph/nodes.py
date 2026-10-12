@@ -395,7 +395,7 @@ def send_email_node(state: WeatherGuardState) -> WeatherGuardState:
     with get_db_context() as db:
         pref_repo = UserPreferenceRepository(db)
         pref = pref_repo.get_preferences(state["location"])
-        recipient = pref.email or settings.ALERT_RECIPIENT
+        recipient = settings.ALERT_RECIPIENT or pref.email
 
         if not recipient or not settings.is_smtp_configured:
             logger.info(
@@ -431,7 +431,7 @@ def record_notification_node(state: WeatherGuardState) -> WeatherGuardState:
         pref_repo = UserPreferenceRepository(db)
         notif_repo = NotificationRepository(db)
         pref = pref_repo.get_preferences(state["location"])
-        recipient = pref.email or settings.ALERT_RECIPIENT or "unconfigured@local"
+        recipient = settings.ALERT_RECIPIENT or pref.email or "unconfigured@local"
 
         for aid in saved_ids:
             history = NotificationHistory(
