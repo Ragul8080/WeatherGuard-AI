@@ -60,6 +60,36 @@ app.add_middleware(
 app.include_router(router)
 
 
+@app.get("/", summary="Root Welcome Index", tags=["General"])
+def root_index():
+    """Welcome route providing service metadata and direct navigation links."""
+    return {
+        "service": "WeatherGuard AI",
+        "version": __version__,
+        "status": "online",
+        "interactive_docs": "/docs",
+        "health_check": "/health",
+        "streamlit_dashboard": "http://localhost:8501 (Start with: streamlit run dashboard/app.py)",
+        "endpoints": {
+            "latest_weather": "/api/weather/latest",
+            "forecast": "/api/weather/forecast",
+            "history": "/api/weather/history",
+            "alerts": "/api/alerts",
+            "settings": "/api/settings",
+            "trigger_check": "POST /api/weather/check",
+            "test_email": "POST /api/alerts/test-email",
+            "chat": "POST /api/chat",
+        },
+    }
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """Silent response for browser favicon requests."""
+    from fastapi.responses import Response
+    return Response(status_code=204)
+
+
 if __name__ == "__main__":
     import uvicorn
 

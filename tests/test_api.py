@@ -19,6 +19,16 @@ def client():
     return TestClient(app)
 
 
+def test_get_root(client):
+    """Test / root endpoint returns service metadata."""
+    response = client.get("/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["service"] == "WeatherGuard AI"
+    assert data["status"] == "online"
+    assert "interactive_docs" in data
+
+
 def test_get_health(client):
     """Test /health endpoint returns valid system status."""
     response = client.get("/health")
